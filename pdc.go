@@ -43,7 +43,6 @@ func (s *SmartContract) CreateMobile(ctx contractapi.TransactionContextInterface
 
 	//Read public data
 	err := json.Unmarshal([]byte(publicDescInput), &publicData)
-	fmt.Println("err   2222 :", err)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal input public description %v", err.Error())
 	}
@@ -65,7 +64,6 @@ func (s *SmartContract) CreateMobile(ctx contractapi.TransactionContextInterface
 
 	//creating composite key for public record
 	publicCompositeKey, err := ctx.GetStub().CreateCompositeKey(index, []string{publicData.Name, MOBILE})
-	fmt.Println("publicCompositeKey : ", publicCompositeKey)
 	if err != nil {
 		return fmt.Errorf("failed to create composite key for public data %v", err.Error())
 	}
@@ -102,13 +100,6 @@ func (s *SmartContract) CreateMobile(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		fmt.Errorf("failed to create composite key for private data %v", err.Error())
 	}
-	fmt.Println("privateCompositeKey :", privateCompositeKey)
-
-	// endorsingOrgs := []string{clientOrgID}
-	// err = setAssetStateBasedEndorsement(ctx, privateCompositeKey, endorsingOrgs)
-	// if err != nil {
-	// 	return fmt.Errorf("failed setting state based endorsement for creater: %v", err)
-	// }
 
 	collection := buildCollectionName(clientOrgID)
 	fmt.Println("Collection name :", collection)
@@ -119,7 +110,6 @@ func (s *SmartContract) CreateMobile(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("failed to marshal private record: %v", privateData.Name)
 	}
 	err = ctx.GetStub().PutPrivateData(collection, privateCompositeKey, privateDataJSON)
-	// err = ctx.GetStub().PutPrivateData(collection, "privateCompositeKey", privateDataJSON)
 	if err != nil {
 		return fmt.Errorf("failed to insert mobile private data: %v", err)
 	}
@@ -127,18 +117,6 @@ func (s *SmartContract) CreateMobile(ctx contractapi.TransactionContextInterface
 }
 
 func (s *SmartContract) GetMobilePublicData(ctx contractapi.TransactionContextInterface, mobileId string) (*Mobile, error) {
-	// compositeKey, err := ctx.GetStub().CreateCompositeKey(index, []string{mobileId, MOBILE})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create composite key: %v", err.Error())
-	// }
-	// publicMobileBytes, err := ctx.GetStub().GetState(compositeKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to read public data: %v", err.Error())
-	// }
-	// if publicMobileBytes == nil {
-	// 	return nil, fmt.Errorf("data not present for : %v", mobileId)
-	// }
-
 	publicMobileBytes, err := readMobilePublicData(ctx, mobileId)
 	if err != nil {
 		return nil, err
@@ -154,27 +132,6 @@ func (s *SmartContract) GetMobilePublicData(ctx contractapi.TransactionContextIn
 }
 
 func (s *SmartContract) GetMobilePrivateDetails(ctx contractapi.TransactionContextInterface, name string) (*MobilePrivateData, error) {
-
-	// privateCompositeKey, err := ctx.GetStub().CreateCompositeKey(index, []string{name, MOBILE_PRIVATE})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create composite key for private data %v", err.Error())
-	// }
-
-	// clientOrgID, err := getClientOrgID(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// fmt.Println("Client org id :", clientOrgID)
-
-	// collection := buildCollectionName(clientOrgID)
-	// fmt.Println("Collection name :", collection)
-
-	// mobileAsBytes, err := ctx.GetStub().GetPrivateData(collection, privateCompositeKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Failed to get Mobile:" + err.Error())
-	// } else if mobileAsBytes == nil {
-	// 	return nil, fmt.Errorf("Mobile does not exist: " + name)
-	// }
 
 	mobileAsBytes, err := readMobilePrivateData(ctx, name)
 	if err != nil {
@@ -210,7 +167,7 @@ func (s *SmartContract) IsMobilePrivateDataExist(ctx contractapi.TransactionCont
 	if err != nil {
 		return false, fmt.Errorf("failed to unmarshal transientMobileJSON: %v", err)
 	}
-	privateData.DocType = MOBILE_PRIVATE
+	// privateData.DocType = MOBILE_PRIVATE
 	fmt.Println("privateData :", &privateData)
 
 	//create composite key
@@ -218,12 +175,6 @@ func (s *SmartContract) IsMobilePrivateDataExist(ctx contractapi.TransactionCont
 	if err != nil {
 		return false, fmt.Errorf("failed to create composite key for private data %v", err.Error())
 	}
-	fmt.Println("privateCompositeKey :", privateCompositeKey)
-
-	// clientOrgID, err := getClientOrgID(ctx)
-	// if err != nil {
-	// 	return false, err
-	// }
 	fmt.Println("Client org id :", clientOrgID)
 
 	collection := buildCollectionName(clientOrgID)
@@ -234,16 +185,6 @@ func (s *SmartContract) IsMobilePrivateDataExist(ctx contractapi.TransactionCont
 	hash.Write(transientMobileJSON)
 	calculatedPropertiesHash := hash.Sum(nil)
 	fmt.Println("calculatedPropertiesHash :", (calculatedPropertiesHash))
-
-	// getPrivateData, err := ctx.GetStub().GetPrivateData(collection, privateCompositeKey)
-	// fmt.Println("getPrivateData :", string(getPrivateData))
-
-	// if err != nil {
-	// 	fmt.Println("Error while getting private data : %v", err.Error())
-	// }
-	// if getPrivateData == nil {
-	// 	fmt.Println("No Private data found using getPrivateData")
-	// }
 
 	// verify that the hash of the passed immutable properties matches the on-chain hash
 	if !bytes.Equal(immutablePropertiesOnChainHash, calculatedPropertiesHash) {
@@ -266,21 +207,11 @@ func (s *SmartContract) UpdateMobilePublicData(ctx contractapi.TransactionContex
 
 	err := json.Unmarshal([]byte(inputData), &dataToUpdate)
 
-	// mobilePublicData, err := s.GetMobilePublicData(ctx, dataToUpdate.MobileId)
-	// if err != nil {
-	// 	return err
-	// }
-
 	var mobilePublicData Mobile
 	publicMobileBytes, err := readMobilePublicData(ctx, dataToUpdate.MobileId)
 	if err != nil {
 		return err
 	}
-
-	// _, err = readMobilePrivateData(ctx, dataToUpdate.MobileId)
-	// if err != nil {
-	// 	return err
-	// }
 
 	err = json.Unmarshal(publicMobileBytes, &mobilePublicData)
 	if err != nil {
@@ -310,19 +241,6 @@ func (s *SmartContract) UpdateMobilePublicData(ctx contractapi.TransactionContex
 func (s *SmartContract) UpdateMobilePrivateData(ctx contractapi.TransactionContextInterface) error {
 	var existingData MobilePrivateData
 	var newData MobilePrivateData
-
-	// mobileAsBytes, err := readMobilePrivateData(ctx, name)
-	// if err != nil {
-	// 	return false, err
-	// }
-
-	// fmt.Println("mobileAsBytes :", string(mobileAsBytes))
-
-	// newInputData := struct {
-	// 	Name  string `json:"name"`
-	// 	Owner string `json:"owner"`
-	// 	Price int    `json:"price"`
-	// }{}
 
 	transientMap, err := ctx.GetStub().GetTransient()
 	if err != nil {
@@ -370,22 +288,6 @@ func (s *SmartContract) UpdateMobilePrivateData(ctx contractapi.TransactionConte
 		return err
 	}
 
-	// var mobilePrivateDetails MobilePrivateData
-	// fmt.Println("newInputData.Name :", newInputData.Name)
-	// fmt.Println("name :", name)
-	// mobileBytes, err := readMobilePrivateData(ctx, name)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// fmt.Println("mobileBytes :", mobileBytes)
-	// fmt.Println("mobileBytes err :", err)
-
-	// err = json.Unmarshal(mobileBytes, &mobilePrivateDetails)
-	// if err != nil {
-	// 	return err
-	// }
-
 	if newData.Owner != "" {
 		existingData.Owner = newData.Owner
 	}
@@ -396,10 +298,6 @@ func (s *SmartContract) UpdateMobilePrivateData(ctx contractapi.TransactionConte
 
 	newDataCompositeKey, err := ctx.GetStub().CreateCompositeKey(index, []string{existingData.Name, MOBILE_PRIVATE})
 	fmt.Println("newDataCompositeKey :", newDataCompositeKey)
-	// clientOrgID, err := getClientOrgID(ctx)
-	// if err != nil {
-	// 	return err
-	// }
 	collection := buildCollectionName(clientOrgID)
 	fmt.Println("Collection name :", collection)
 
@@ -434,16 +332,6 @@ func (s *SmartContract) DeleteMobile(ctx contractapi.TransactionContextInterface
 	}
 	fmt.Println("Public composite key :", publicCompositeKey)
 
-	//validate mobile public record
-	// mobilePublicBytes, err := ctx.GetStub().GetState(publicCompositeKey)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get mobile public data: %v", err)
-	// }
-	// if mobilePublicBytes == nil {
-	// 	return fmt.Errorf("record does not exist for mobile: %v", mobileId)
-	// }
-	// fmt.Println("mobilePublicBytes :", mobilePublicBytes)
-
 	privateCompositeKey, err := ctx.GetStub().CreateCompositeKey(index, []string{mobileId, MOBILE_PRIVATE})
 	if err != nil {
 		fmt.Errorf("failed to create composite key for private data %v", err.Error())
@@ -457,18 +345,8 @@ func (s *SmartContract) DeleteMobile(ctx contractapi.TransactionContextInterface
 	fmt.Println("Client org id :", clientOrgID)
 
 	collection := buildCollectionName(clientOrgID)
-	// mobilePrivateBytes, _ := ctx.GetStub().GetPrivateData(collection, privateCompositeKey)
-	// fmt.Println("mobilePrivateBytes :", string(mobilePrivateBytes))
-	// if err != nil {
-	// 	return fmt.Errorf("11111 - failed to read private data : %v", err.Error())
-	// }
-	// if mobilePrivateBytes == nil {
-	// 	return fmt.Errorf("private record does not exist for mobile: %v", mobileId)
-	// }
-
 	err = ctx.GetStub().DelPrivateData(collection, privateCompositeKey)
 	if err != nil {
-		//fmt.Println("failed to delete mobile private data : %v", err.Error())
 		return fmt.Errorf("failed to delete mobile private data: %v", err)
 	}
 	fmt.Println("Private Data deleted successfully")
@@ -494,28 +372,6 @@ func getClientOrgID(ctx contractapi.TransactionContextInterface) (string, error)
 
 	return clientOrgID, nil
 }
-
-// setAssetStateBasedEndorsement adds an endorsement policy to an asset so that the passed orgs need to agree upon transfer
-// func setAssetStateBasedEndorsement(ctx contractapi.TransactionContextInterface, compositeKey string, orgsToEndorse []string) error {
-// 	endorsementPolicy, err := statebased.NewStateEP(nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	err = endorsementPolicy.AddOrgs(statebased.RoleTypePeer, orgsToEndorse...)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to add org to endorsement policy: %v", err)
-// 	}
-// 	policy, err := endorsementPolicy.Policy()
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create endorsement policy bytes from org: %v", err)
-// 	}
-// 	err = ctx.GetStub().SetStateValidationParameter(compositeKey, policy)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to set validation parameter on asset: %v", err)
-// 	}
-
-// 	return nil
-// }
 
 func readMobilePublicData(ctx contractapi.TransactionContextInterface, mobileId string) ([]byte, error) {
 
@@ -574,19 +430,6 @@ func readMobilePrivateData(ctx contractapi.TransactionContextInterface, mobileId
 	fmt.Println("Mobile Private Data in Bytes :", string(mobileAsBytes))
 
 	return mobileAsBytes, nil
-}
-
-func (s *SmartContract) CreateMobile1(ctx contractapi.TransactionContextInterface, publicDescInput string) error {
-
-	fmt.Println("Test1111")
-	fmt.Println("publicDescInput : ", publicDescInput)
-
-	err := ctx.GetStub().PutState("publicCompositeKey", []byte(publicDescInput))
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func main() {
