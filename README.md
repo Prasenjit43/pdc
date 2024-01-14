@@ -1,55 +1,94 @@
-# FabCar as an external service
+# Mobile Chaincode for Hyperledger Fabric
 
-See the "Chaincode as an external service" documentation for running chaincode as an external service.
-This includes details of the external builder and launcher scripts which will peers in your Fabric network will require.
+This is a Hyperledger Fabric chaincode written in Go that manages mobile device records. It uses both public and private data to maintain information about mobile devices.
 
-The FabCar chaincode requires two environment variables to run, `CHAINCODE_SERVER_ADDRESS` and `CORE_CHAINCODE_ID_NAME`, which are described in the `chaincode.env.example` file. Copy this file to `chaincode.env` before continuing.
+## Chaincode Functions
 
-**Note:** each organization in a Fabric network will need to follow the instructions below to host their own instance of the FabCar external service.
+### 1. `CreateMobile`
 
-## Packaging and installing
+This function is used to create a new mobile device record. It takes a JSON input containing public data (name, color, size) and transient private data (owner, price).
 
-Make sure the value of `CHAINCODE_SERVER_ADDRESS` in `chaincode.env` is correct for the FabCar external service you will be running.
+**Peer Command for CreateMobile:**
 
-The peer needs a `connection.json` configuration file so that it can connect to the external FabCar service.
-Use the `CHAINCODE_SERVER_ADDRESS` value in `chaincode.env` to create the `connection.json` file with the following command (requires [jq](https://stedolan.github.io/jq/)):
+```bash
+export MOBILE=$(echo -n "{\"doctype\":\"MOBILE_PRIVATE\",\"name\":\"mobile05\",\"owner\":\"parth\",\"price\":100}" | base64 | tr -d \\n)
 
-```
-env $(cat chaincode.env | grep -v "#" | xargs) jq -n '{"address":env.CHAINCODE_SERVER_ADDRESS,"dial_timeout": "10s","tls_required": false}' > connection.json
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n pdc --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"CreateMobile","Args":["{\"doctype\":\"MOBILE\",\"name\":\"mobile05\",\"color\":\"black\",\"size\":35}"]}' --transient "{\"mobile_properties\":\"$MOBILE\"}"
 ```
 
-Add this file to a `code.tar.gz` archive ready for adding to a FabCar external service package:
+### 2. `GetMobilePublicData`
 
-```
-tar cfz code.tar.gz connection.json
-```
+**Peer Command for GetMobilePublicData:**
 
-Package the FabCar external service using the supplied `metadata.json` file:
-
-```
-tar cfz fabcar-pkg.tgz metadata.json code.tar.gz
+```bash
+peer chaincode query -C mychannel -n pdc -c '{"Args":["GetMobilePublicData", "mobile04"]}' | jq .
 ```
 
-Install the `fabcar-pkg.tgz` chaincode as usual, for example:
+Retrieves the public data of a mobile device based on the provided mobile ID.
 
-```
-peer lifecycle chaincode install ./fabcar-pkg.tgz
-```
+### 3. `GetMobilePrivateDetails`
 
-## Running the FabCar external service
+**Peer Command for GetMobilePrivateDetails:**
 
-To run the service in a container, build a FabCar docker image:
-
-```
-docker build -t hyperledger/fabcar-sample .
+```bash
+peer chaincode query -C mychannel -n pdc -c '{"Args":["GetMobilePrivateDetails", "mobile04"]}' | jq .
 ```
 
-Edit the `chaincode.env` file to configure the `CHAINCODE_ID` variable before starting a FabCar container using the following command:
+Retrieves the private details of a mobile device based on the provided name.
 
+### 4. `IsMobilePrivateDataExist`
+
+**Peer Command for IsMobilePrivateDataExist:**
+
+```bash
+export MOBILE=$(echo -n "{\"doctype\":\"MOBILE_PRIVATE\",\"name\":\"mobile04\",\"owner\":\"parth\",\"price\":100}" | base64 | tr -d \\n)
+
+peer chaincode query -C mychannel -n pdc -c '{"Args":["IsMobilePrivateDataExist","Org1MSP"]}' --transient "{\"mobile_properties\":\"$MOBILE\"}"
 ```
-docker run -it --rm --name fabcar.org1.example.com --hostname fabcar.org1.example.com --env-file chaincode.env --network=net_test hyperledger/fabcar-sample
+
+Checks if private data for a mobile device already exists based on the client organization ID and transient data.
+
+### 5. `UpdateMobilePublicData`
+
+**Peer Command for UpdateMobilePublicData:**
+
+```bash
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n pdc --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"UpdateMobilePublicData","Args":["{\"mobileId\":\"mobile04\",\"newColor\":\"red\"}"]}'
 ```
 
-## Starting the FabCar external service
+Updates the color of a mobile device based on the provided mobile ID.
 
-Complete the remaining lifecycle steps to start the FabCar chaincode!
+### 6. `UpdateMobilePrivateData`
+
+**Peer Command for UpdateMobilePrivateData:**
+
+```bash
+export MOBILE=$(echo -n "{\"doctype\":\"MOBILE_PRIVATE\",\"name\":\"mobile05\",\"owner\":\"parth\",\"price\":100}" | base64 | tr -d \\n)
+export NEW_MOBILE=$(echo -n "{\"name\":\"mobile05\",\"owner\":\"parth\",\"price\":300}" | base64 | tr -d \\n)
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n pdc --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"UpdateMobilePrivateData","Args":[]}' --transient "{\"mobile_properties\":\"$MOBILE\",\"new_mobile_properties\":\"$NEW_MOBILE\"}"
+```
+
+Updates the private data of a mobile device based on the transient data provided. It ensures the existence of the mobile device's private data before making updates.
+
+### 7. `DeleteMobile`
+
+**Peer Command for DeleteMobile:**
+
+```bash
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n pdc --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"DeleteMobile","Args":["mobile05"]}'
+```
+
+Deletes both public and private data of a mobile device based on the provided mobile ID.
+
+## Transient Data
+
+The chaincode utilizes transient data to pass private information during transactions. It ensures the confidentiality of sensitive data.
+
+## Implicit Collections
+
+Private data is stored in implicit collections, with collection names based on the client organization ID.
+
+## Endorsement Policy
+
+The chaincode ensures that private data is endorsed by the required parties.
